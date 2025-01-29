@@ -16,7 +16,6 @@ app.use((err, req, res, next) => {
   }
   next();
 });
-
 app.get("/healthz", async (req, res) => {
   if (req.body && Object.keys(req.body).length > 0) {
     res.set("Cache-Control", "no-cache, no-store, must-revalidate");
