@@ -1,4 +1,4 @@
-WEB APP
+**WEB APP**
 
 **To run the app locally:**
 
