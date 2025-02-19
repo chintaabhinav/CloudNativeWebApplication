@@ -49,6 +49,16 @@ jobs:
           echo "MySQL not ready"
           exit 1
 
+      - name: Ensure Checks Table Exists
+        run: |
+          echo "Creating missing tables if necessary..."
+          mysql -h "127.0.0.1" -u"${{ secrets.DB_USERNAME }}" -p"${{ secrets.DB_PASSWORD }}" -D "${{ secrets.DB_DATABASE }}" -e "
+          CREATE TABLE IF NOT EXISTS Checks (
+          checkId INT AUTO_INCREMENT PRIMARY KEY,
+          datetime DATETIME NOT NULL
+          ) ENGINE=InnoDB;
+            SHOW TABLES;"
+
       - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
           DB_HOST: 127.0.0.1
