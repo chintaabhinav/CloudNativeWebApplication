@@ -40,5 +40,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run Main File
+        run: npm index.js
+
       - name: Run Integration tests
         run: npm test
