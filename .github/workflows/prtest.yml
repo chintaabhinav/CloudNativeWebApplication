@@ -51,10 +51,10 @@ jobs:
       - name: Ensure Database is Ready
         run: |
           echo "Waiting for MySQL to be fully ready..."
-          for i in {1..10}; do
+          for i in {1..15}; do
             mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -e "SELECT 1" && break
             echo "MySQL not ready yet. Retrying in 5 seconds..."
-            sleep 5
+            sleep 10
           done
 
       - name: Ensure Checks Table Exists
@@ -78,9 +78,10 @@ jobs:
 
       - name: Run tests
         env:
-          DB_HOST: localhost
+          DEBUG: "true"
+          DB_HOST: 127.0.0.1
           PORT: ${{ secrets.PORT }}
-          DB_USERNAME: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASS }}
-          DB_DATABASE: ${{ secrets.DB_NAME }}
-        run: npm test
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: npm test -- --verbose
