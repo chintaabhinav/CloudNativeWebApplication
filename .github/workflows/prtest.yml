@@ -1,0 +1,44 @@
+name: PR Status Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    env:
+      # Environment variables sourced from GitHub Secrets
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASS }}
+      DB_DIALECT: ${{ secrets.DB_DIALECT }}
+
+    steps:
+      - name: Print Environments for Debugging(optional)
+        run: |
+          echo "-----------------------------"
+          echo "Environment Variables:"
+          echo "DB_HOST: $DB_HOST"
+          echo "DB_NAME: $DB_NAME"
+          echo "DB_USER: $DB_USER"
+          echo "DB_DIALECT: $DB_DIALECT"
+          echo "-----------------------------"
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21.7.3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Integration tests
+        run: npm test
