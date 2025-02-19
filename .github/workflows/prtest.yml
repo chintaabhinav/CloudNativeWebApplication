@@ -54,7 +54,7 @@ jobs:
           DB_HOST: 127.0.0.1
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: root
-          DB_PASSWORD: ${{ secrets.DB_PASS }}
+          DB_PASS: ${{ secrets.DB_PASS }}
           DB_DIALECT: ${{ secrets.DB_DIALECT }}
         run: |
           echo "Running tests with database connection..."
