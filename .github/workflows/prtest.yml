@@ -4,92 +4,55 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
 
 jobs:
-  integration-test:
+  build:
+    name: WebApp Setup
     runs-on: ubuntu-latest
 
-    services:
+    services: #Extra Services
       mysql:
-        image: mysql:8
+        image: mysql:8.0 #MySQL Container
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
           MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+          MYSQL_ROOT_HOST: "%"
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping --silent"
+          --health-cmd="mysqladmin ping"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up environment variables
+        working-directory: src
+        run: |
+          echo "DATABASE_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DATABASE_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DATABASE_PASSWORD=${{ secrets.DB_PASS }}" >> .env
+
+          echo "DATABASE_USERNAME=${{ secrets.DB_USER }}" >> .env
+          echo "DIALECT=${{ secrets.DB_DIALECT }}" >> .env
+          cat .env
+
+      - name: Checking environment variables
+        working-directory: src
+        run: cat .env
+
+      - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 21.7.3
+          node-version: "18"
 
-      - name: Install dependencies
+      - name: Install Dependencies
+        working-directory: src
         run: npm install
 
-      - name: Debug MySQL Connection
-        run: |
-          echo "Checking MySQL connection..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS}}" -e "SHOW DATABASES;" || true
-
-      - name: Debug MySQL Secrets (No Passwords)
-        run: |
-          echo "DB_USER=${{ secrets.DB_USER }}"
-          echo "DB_DATABASE=${{ secrets.DB_NAME }}"
-          echo "DB_HOST=localhost"
-          echo "DB_ROOT_PASSWORD is set"
-
-      - name: Ensure Database is Ready
-        run: |
-          echo "Waiting for MySQL to be fully ready..."
-          for i in {1..10}; do
-            mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -e "SELECT 1" && break
-            echo "MySQL not ready yet. Retrying in 5 seconds..."
-            sleep 5
-          done
-
-      - name: Ensure Checks Table Exists
-        run: |
-          echo "Creating missing tables if necessary..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -D "${{ secrets.DB_NAME }}" -e "
-          CREATE TABLE IF NOT EXISTS ApplicationHealth (
-            checkId INT AUTO_INCREMENT PRIMARY KEY,
-            datetime DATETIME NOT NULL
-          ) ENGINE=InnoDB;
-          SHOW TABLES;"
-
-      - name: Run Sequelize Sync to Ensure Tables Exist
-        run: |
-          echo "Running Sequelize Sync..."
-          node -e '
-          const sequelize = require("./models/index");
-          (async () => {
-            try {
-              await sequelize.sync({ alter: true });
-              console.log("✅ Tables are up to date!");
-            } catch (error) {
-              console.error("❌ Sequelize Sync Failed:", error);
-              process.exit(1);
-            }
-          })();
-          '
-
-      - name: Run Tests # ✅ Fixed: Now actually runs something!
-        env:
-          DB_HOST: 127.0.0.1
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: root
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_DIALECT: "mysql"
-        run: |
-          echo "Running tests with database connection..."
-          npm test
+      - name: Run Tests
+        working-directory: src
+        run: npm test
