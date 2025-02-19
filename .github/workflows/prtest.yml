@@ -59,4 +59,5 @@ jobs:
         run: |
           echo "Running tests with database connection..."
           node index.js  # ✅ Starts your Node.js app
+          pkill -f "node index.js"
           npm test       # ✅ Runs your Jest tests
