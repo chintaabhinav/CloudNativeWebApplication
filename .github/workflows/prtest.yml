@@ -67,6 +67,21 @@ jobs:
           ) ENGINE=InnoDB;
           SHOW TABLES;"
 
+      - name: Run Sequelize Sync to Ensure Tables Exist
+        run: |
+          echo "Running Sequelize Sync..."
+          node -e '
+          const sequelize = require("./models/index");
+          (async () => {
+            try {
+              await sequelize.sync({ alter: true });
+              console.log("✅ Tables are up to date!");
+            } catch (error) {
+              console.error("❌ Sequelize Sync Failed:", error);
+              process.exit(1);
+            }
+          })();
+
       - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
           DB_HOST: 127.0.0.1
