@@ -10,25 +10,21 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
 
-    env:
-      # Environment variables sourced from GitHub Secrets
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASS }}
-      DB_DIALECT: ${{ secrets.DB_DIALECT }}
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
+          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
-      - name: Print Environments for Debugging (optional)
-        run: |
-          echo "-----------------------------"
-          echo "Environment Variables:"
-          echo "DB_HOST: $DB_HOST"
-          echo "DB_NAME: $DB_NAME"
-          echo "DB_USER: $DB_USER"
-          echo "DB_DIALECT: $DB_DIALECT"
-          echo "-----------------------------"
-
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -37,27 +33,30 @@ jobs:
         with:
           node-version: 21.7.3
 
-      - name: Install MySQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
-          sudo systemctl enable mysql
-          sudo systemctl start mysql
-          sudo mysql -e "ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY '${{ secrets.DB_PASS }}'; FLUSH PRIVILEGES;"
-          sudo systemctl restart mysql
-          sudo mysql -u root -p"${{ secrets.DB_PASS }}" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-
-      - name: Allow MySQL on Port 3306
-        run: sudo ufw allow 3306
-
       - name: Install dependencies
         run: npm install
 
-      - name: Wait for MySQL to be Ready
-        run: sleep 10
+      - name: Wait for MySQL
+        run: |
+          for i in {1..20}; do
+            if mysqladmin ping -h 127.0.0.1 --silent; then
+              echo "MySQL Ready!"
+              exit 0
+            fi
+            echo "Waiting for MySQL to be ready..."
+            sleep 3
+          done
+          echo "MySQL not ready"
+          exit 1
 
-      - name: Run Main File
-        run: node index.js
-
-      - name: Run Integration tests
-        run: npm test
+      - name: Run Tests # ✅ Fixed: Now actually runs something!
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: root
+          DB_PASSWORD: ${{ secrets.DB_PASS }}
+          DB_DIALECT: ${{ secrets.DB_DIALECT }}
+        run: |
+          echo "Running tests with database connection..."
+          node index.js  # ✅ Starts your Node.js app
+          npm test       # ✅ Runs your Jest tests
