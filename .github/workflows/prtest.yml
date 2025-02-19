@@ -58,15 +58,4 @@ jobs:
           DB_DIALECT: ${{ secrets.DB_DIALECT }}
         run: |
           echo "Running tests with database connection..."
-          node index.js
-          NODE_PID=$!
-          sleep 10  
-
-           echo "Stopping Node.js server..."
-          kill $NODE_PID    # ✅ Stop the running server
-          sleep 2           # ⏳ Ensure cleanup
-
-      - name: Run Integration Tests
-        run: |
-          echo "Starting Jest tests..."
           npm test
