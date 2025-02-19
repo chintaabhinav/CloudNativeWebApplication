@@ -43,7 +43,9 @@ jobs:
           sudo apt-get install -y mysql-server
           sudo systemctl enable mysql
           sudo systemctl start mysql
-          sudo mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+          sudo mysql -e "ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY '${{ secrets.DB_PASS }}'; FLUSH PRIVILEGES;"
+          sudo systemctl restart mysql
+          sudo mysql -u root -p"${{ secrets.DB_PASS }}" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 
       - name: Allow MySQL on Port 3306
         run: sudo ufw allow 3306
