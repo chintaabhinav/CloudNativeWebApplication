@@ -81,6 +81,7 @@ jobs:
               process.exit(1);
             }
           })();
+          '
 
       - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
