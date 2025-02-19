@@ -4,7 +4,7 @@
 set -e
 
 # Define variables
-APP_DIR="/opt/csye6225/webapp"
+APP_DIR="/opt/csye6225"
 APP_USER="appuser"
 APP_GROUP="csye6225"
 LOG_FILE="/var/log/setup.log"
@@ -21,7 +21,7 @@ sudo apt update -y && sudo apt upgrade -y
 
 # 2️⃣ stall Required Packages**
 echo " Installing required packages"
-sudo apt install -y unzip curl git mysql-server
+sudo apt install -y unzip curl git mysql-server npm
 
 # 3️⃣ sure MySQL is Running***
 echo "Ensuring MySQL is running"
@@ -32,10 +32,16 @@ sudo systemctl start mysql
 echo "Ensuring application directory exists"
 sudo mkdir -p $APP_DIR
 
+sudo mv .env $APP_DIR/
+
+sudo chmod 644 $APP_DIR/.env
+
+cat -A $APP_DIR/.env
+
 # 5️⃣oad `.env` Variables from WebApp Folder**
-if [[ -f ".env" ]]; then
+if [[ -f $APP_DIR/.env ]]; then
     echo "Loading environment variables from .env"
-    export $(grep -v '^#' ".env" | xargs)
+    export $(grep -v '^#' $APP_DIR/.env | xargs)
 else
     echo "ERROR: .env file not found in $APP_DIR. Please upload it."
     exit 1
