@@ -4,7 +4,7 @@ const request = require("supertest");
 const app = require("../index"); // Import your Express app
 
 describe("Health Check API Tests", () => {
-  jest.mock("../models/healthz_models.js", () => ({
+  jest.mock("../models/healthcheck.js", () => ({
     create: jest.fn(),
   }));
 
