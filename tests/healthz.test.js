@@ -3,16 +3,6 @@ const { sequelize } = require("../models/index");
 const request = require("supertest");
 const app = require("../index"); // Import your Express app
 
-describe("Health Check API Tests", () => {
-  beforeAll(async () => {
-    await sequelize.authenticate();
-    await sequelize.sync({ force: true });
-  });
-
-  afterAll(async () => {
-    await sequelize.close();
-  });
-
   test(" Should return 200 OK for GET /healthz", async () => {
     const response = await request(app).get("/healthz");
     expect(response.status).toBe(200);
