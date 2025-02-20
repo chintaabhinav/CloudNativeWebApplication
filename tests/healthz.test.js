@@ -4,6 +4,10 @@ const request = require("supertest");
 const app = require("../index"); // Import your Express app
 
 describe("Health Check API Tests", () => {
+  jest.mock("../models/healthz_models.js", () => ({
+    create: jest.fn(),
+  }));
+
   test(" Should return 200 OK for GET /healthz", async () => {
     const response = await request(app).get("/healthz");
     expect(response.status).toBe(200);
