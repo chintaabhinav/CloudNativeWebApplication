@@ -1,21 +1,21 @@
-name: WEBAPP CI
+name: PR Status Check
 
 on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened]
 
 jobs:
-  test:
+  integration-test:
     runs-on: ubuntu-latest
 
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DBPASS }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
           MYSQL_DATABASE: ${{ secrets.DB_NAME }}
-
         ports:
           - 3306:3306
         options: >-
@@ -24,14 +24,14 @@ jobs:
           --health-timeout=5s
           --health-retries=3
 
-    steps: # Moved steps outside services
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: 21.7.3
 
       - name: Install dependencies
         run: npm install
@@ -39,9 +39,9 @@ jobs:
       - name: Debug MySQL Connection
         run: |
           echo "Checking MySQL connection..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -e "SHOW DATABASES;" || true
+          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS}}" -e "SHOW DATABASES;" || true
 
-      - name: Debug MySQL Secrets
+      - name: Debug MySQL Secrets (No Passwords)
         run: |
           echo "DB_USER=${{ secrets.DB_USER }}"
           echo "DB_DATABASE=${{ secrets.DB_NAME }}"
@@ -52,7 +52,7 @@ jobs:
         run: |
           echo "Waiting for MySQL to be fully ready..."
           for i in {1..10}; do
-            mysql -h "127.0.0.1" -u"${{ secrets.DB_NAME }}" -p"${{ secrets.DB_PASS }}" -e "SELECT 1" && break
+            mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -e "SELECT 1" && break
             echo "MySQL not ready yet. Retrying in 5 seconds..."
             sleep 5
           done
@@ -61,26 +61,35 @@ jobs:
         run: |
           echo "Creating missing tables if necessary..."
           mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -D "${{ secrets.DB_NAME }}" -e "
-          CREATE TABLE IF NOT EXISTS Checks (
+          CREATE TABLE IF NOT EXISTS ApplicationHealth (
             checkId INT AUTO_INCREMENT PRIMARY KEY,
             datetime DATETIME NOT NULL
           ) ENGINE=InnoDB;
-          SHOW TABLES;
-          "
+          SHOW TABLES;"
 
-      - name: Configure Environment Variables
+      - name: Run Sequelize Sync to Ensure Tables Exist
         run: |
-          echo DB_USER=${{ secrets.DB_USER }}
-          echo DB_PASSWORD=${{ secrets.DB_PASS }}
-          echo DB_NAME=${{ secrets.DB_NAME }}
-          echo DB_HOST=localhost
-          echo PORT=${{ secrets.PORT }}
+          echo "Running Sequelize Sync..."
+          node -e '
+          const sequelize = require("./models/index");
+          (async () => {
+            try {
+              await sequelize.sync({ alter: true });
+              console.log("✅ Tables are up to date!");
+            } catch (error) {
+              console.error("❌ Sequelize Sync Failed:", error);
+              process.exit(1);
+            }
+          })();
+          '
 
-      - name: Run tests
+      - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
           DB_HOST: 127.0.0.1
-          PORT: ${{ secrets.PORT }}
-          DB_USERNAME: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASS }}
-          DB_DATABASE: ${{ secrets.DB_NAME }}
-        run: npm test
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: root
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_DIALECT: "mysql"
+        run: |
+          echo "Running tests with database connection..."
+          npm test
