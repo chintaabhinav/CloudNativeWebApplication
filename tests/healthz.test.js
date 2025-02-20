@@ -4,15 +4,22 @@ const request = require("supertest");
 const app = require("../index"); // Import your Express app
 
 describe("Health Check API Tests", () => {
+  beforeAll(async () => {
+    await sequelize.authenticate();
+    await HealthCheck.sync({ force: true });
+  });
+
+  afterAll(async () => {
+    await sequelize.close();
+  });
+
   test(" Should return 200 OK for GET /healthz", async () => {
     const response = await request(app).get("/healthz");
     expect(response.status).toBe(200);
   });
 
   test(" Should return 400 Bad Request if body is present in GET /healthz", async () => {
-    const response = await request(app)
-      .get("/healthz")
-      .send({ key: "value" });
+    const response = await request(app).get("/healthz").send({ key: "value" });
 
     expect(response.status).toBe(400);
   });
@@ -26,4 +33,3 @@ describe("Health Check API Tests", () => {
     });
   });
 });
-
