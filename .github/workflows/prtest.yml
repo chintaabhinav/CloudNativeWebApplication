@@ -67,8 +67,6 @@ jobs:
           ) ENGINE=InnoDB;
           SHOW TABLES;"
 
-          '
-
       - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
           DB_HOST: 127.0.0.1
