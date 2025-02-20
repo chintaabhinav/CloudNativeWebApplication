@@ -69,7 +69,7 @@ jobs:
 
       - name: Run Tests # ✅ Fixed: Now actually runs something!
         env:
-          DB_HOST: 127.0.0.1
+          DB_HOST: "127.0.0.1"
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: root
           DB_PASS: ${{ secrets.DB_PASS }}
