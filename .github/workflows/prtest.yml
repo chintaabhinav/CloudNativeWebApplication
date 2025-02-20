@@ -13,7 +13,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DBPASS }}
           MYSQL_DATABASE: ${{ secrets.DB_NAME }}
 
         ports:
@@ -78,7 +78,7 @@ jobs:
 
       - name: Run tests
         env:
-          DB_HOST: localhost
+          DB_HOST: 127.0.0.1
           PORT: ${{ secrets.PORT }}
           DB_USERNAME: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASS }}
