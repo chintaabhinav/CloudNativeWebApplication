@@ -14,7 +14,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+          MYSQL_DATABASE: HealthCheck
 
         ports:
           - 3306:3306
@@ -44,7 +44,7 @@ jobs:
       - name: Debug MySQL Secrets
         run: |
           echo "DB_USER=${{ secrets.DB_USER }}"
-          echo "DB_DATABASE=${{ secrets.DB_NAME }}"
+          echo "DB_DATABASE=HealthCheck"
           echo "DB_HOST=localhost"
           echo "DB_ROOT_PASSWORD is set"
 
@@ -60,7 +60,7 @@ jobs:
       - name: Ensure Checks Table Exists
         run: |
           echo "Creating missing tables if necessary..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -D "${{ secrets.DB_NAME }}" -e "
+          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -D "HealthCheck" -e "
           CREATE TABLE IF NOT EXISTS ApplicationHealth (
             checkId INT AUTO_INCREMENT PRIMARY KEY,
             datetime DATETIME NOT NULL
@@ -72,7 +72,7 @@ jobs:
         run: |
           echo DB_USER=${{ secrets.DB_USER }}
           echo DB_PASSWORD=${{ secrets.DB_PASS }}
-          echo DB_NAME=${{ secrets.DB_NAME }}
+          echo DB_NAME= HealthCheck
           echo DB_HOST=localhost
           echo PORT=${{ secrets.PORT }}
 
@@ -83,5 +83,5 @@ jobs:
           PORT: ${{ secrets.PORT }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_NAME: HealthCheck
         run: npm test -- --verbose
