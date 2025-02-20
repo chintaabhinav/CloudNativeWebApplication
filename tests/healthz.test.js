@@ -1,12 +1,12 @@
 process.env.NODE_ENV = "test";
-
+const { sequelize } = require("../models/index");
 const request = require("supertest");
 const app = require("../index"); // Import your Express app
 
 describe("Health Check API Tests", () => {
   beforeAll(async () => {
     await sequelize.authenticate();
-    await HealthCheck.sync({ force: true });
+    await sequelize.sync({ force: true });
   });
 
   afterAll(async () => {
