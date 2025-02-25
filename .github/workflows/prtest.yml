@@ -1,25 +1,25 @@
-name: PR Status Check
+name: CI Pipeline
 
 on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
 
 jobs:
-  integration-test:
+  test:
     runs-on: ubuntu-latest
-
     services:
       mysql:
-        image: mysql:8
+        image: mysql:latest
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
-          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: ${{ secrets.DB_USER }}
+          MYSQL_PASSWORD: ${{ secrets.DB_PASS }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASS }}
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping --silent"
+          --health-cmd="mysqladmin ping --host=localhost --user=root --password=rootpass"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
@@ -28,70 +28,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 21.7.3
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
 
-      - name: Debug MySQL Connection
+      - name: Set up environment variables
         run: |
-          echo "Checking MySQL connection..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS}}" -e "SHOW DATABASES;" || true
+          echo "DB_NAME=testdb" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_DIALECT=mysql" >> .env
 
-      - name: Debug MySQL Secrets (No Passwords)
+      - name: Ensure Sequelize config and migrations exist
         run: |
-          echo "DB_USER=${{ secrets.DB_USER }}"
-          echo "DB_DATABASE=${{ secrets.DB_NAME }}"
-          echo "DB_HOST=localhost"
-          echo "DB_ROOT_PASSWORD is set"
-
-      - name: Ensure Database is Ready
-        run: |
-          echo "Waiting for MySQL to be fully ready..."
-          for i in {1..10}; do
-            mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -e "SELECT 1" && break
-            echo "MySQL not ready yet. Retrying in 5 seconds..."
-            sleep 5
-          done
-
-      - name: Ensure Checks Table Exists
-        run: |
-          echo "Creating missing tables if necessary..."
-          mysql -h "127.0.0.1" -u"${{ secrets.DB_USER }}" -p"${{ secrets.DB_PASS }}" -D "${{ secrets.DB_NAME }}" -e "
-          CREATE TABLE IF NOT EXISTS ApplicationHealth (
-            checkId INT AUTO_INCREMENT PRIMARY KEY,
-            datetime DATETIME NOT NULL
-          ) ENGINE=InnoDB;
-          SHOW TABLES;"
-
-      - name: Run Sequelize Sync to Ensure Tables Exist
-        run: |
-          echo "Running Sequelize Sync..."
-          node -e "
-          const sequelize = require('./models/index');
-          (async () => {
-            try {
-              await sequelize.authenticate();
-              console.log('✅ Database connected successfully.');
-              await sequelize.sync({ alter: true });
-              console.log('✅ Tables are synchronized.');
-            } catch (error) {
-              console.error('❌ Sequelize Sync Failed:', error);
-              process.exit(1);
+          mkdir -p config migrations
+          echo '{
+            "development": {
+              "username": "${{ secrets.DB_USER }}",
+              "password": "${{ secrets.DB_PASS }}",
+              "database": "testdb",
+              "host": "127.0.0.1",
+              "dialect": "mysql"
             }
-          })();
-          "
+          }' > config/config.json
 
-      - name: Run Tests # ✅ Fixed: Now actually runs something!
-        env:
-          DB_HOST: "127.0.0.1"
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: root
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_DIALECT: "mysql"
+      - name: Generate initial migration if none exist
         run: |
-          echo "Running tests with database connection..."
-          npm test
+          if [ -z "$(ls -A migrations)" ]; then
+            echo "Generating initial migration..."
+            npx sequelize-cli model:generate --name User --attributes name:string,email:string,password:string
+          fi
+
+      - name: Run database migrations
+        run: npx sequelize-cli db:migrate
+
+      - name: Run tests
+        run: npm test
