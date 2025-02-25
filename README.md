@@ -21,3 +21,15 @@
     * DB_HOST=localhost
     * DB_DIALECT=mysql
 * Run the app using command: node index.js
+
+**To run the packer build command**
+
+Create variables.pkrvars.hcl file with the following fields:
+
+ami_name      = ""
+db_user       = ""
+db_pass       = ""
+db_root_pass  = ""
+vpc_to_use    = ""
+subnet_to_use = ""
+source_ami    = ""
