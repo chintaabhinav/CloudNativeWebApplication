@@ -26,8 +26,8 @@ variable "artifact_path" {
 }
 
 //variable "vpc_to_use" {
-  //type        = string
-  //description = "VPC to use for the AWS provider"
+//type        = string
+//description = "VPC to use for the AWS provider"
 //}
 
 variable "subnet_to_use" {
