@@ -25,10 +25,10 @@ variable "artifact_path" {
   default = "webapp.zip"
 }
 
-//variable "vpc_to_use" {
-//type        = string
-//description = "VPC to use for the AWS provider"
-//}
+variable "vpc_to_use" {
+  type        = string
+  description = "VPC to use for the AWS provider"
+}
 
 variable "subnet_to_use" {
   type        = string
