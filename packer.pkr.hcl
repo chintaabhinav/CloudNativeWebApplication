@@ -35,7 +35,8 @@ variable "subnet_to_use" {
   description = "Subnet to use within the VPC"
 }
 
-variable "source_ami" {
+variable 
+"source_ami" {
   type        = string
   description = "Source AMI ID"
   default     = "ami-0866a3c8686eaeeba"
