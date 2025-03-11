@@ -25,17 +25,17 @@ variable "artifact_path" {
   default = "webapp.zip"
 }
 
-variable "vpc_to_use" {
-  type        = string
-  description = "VPC to use for the AWS provider"
-}
+//variable "vpc_to_use" {
+  //type        = string
+  //description = "VPC to use for the AWS provider"
+//}
 
 variable "subnet_to_use" {
   type        = string
   description = "Subnet to use within the VPC"
 }
 
-  variable "source_ami" {
+variable "source_ami" {
   type        = string
   description = "Source AMI ID"
   default     = "ami-0866a3c8686eaeeba"
