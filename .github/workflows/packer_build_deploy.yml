@@ -142,3 +142,16 @@ jobs:
             -var "db_pass=${{ secrets.DB_PASS }}" \
             -var "db_root_pass=${{ secrets.DB_ROOT_PASS }}" \
             packer.pkr.hcl
+
+      - name: Pass the AMI to Demo in AWS
+        run: |
+          AMI_ID=$(aws ec2 describe-images --filters "Name=name,Values=${{ steps.create_image_name.outputs.IMAGE_NAME }}" --query "Images[0].ImageId" --output text)
+          echo "AMI ID: $AMI_ID" 
+          TARGET_AWS_ACCOUNT="${{ secrets.AWS_DEMO_ACCOUNT_ID }}"
+          echo "Target AWS Account: $TARGET_AWS_ACCOUNT"
+          SNAPSHOT_ID=$(aws ec2 describe-images --image-ids $AMI_ID --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" --output text)
+          echo "Associated Snapshot ID: $SNAPSHOT_ID"
+          aws ec2 modify-image-attribute --image-id $AMI_ID --launch-permission "Add=[{UserId=$TARGET_AWS_ACCOUNT}]"
+          aws ec2 modify-snapshot-attribute --snapshot-id $SNAPSHOT_ID --attribute createVolumePermission --operation-type add --user-ids $TARGET_AWS_ACCOUNT
+          aws ec2 describe-image-attribute --image-id $AMI_ID --attribute launchPermission
+          aws ec2 describe-snapshot-attribute --snapshot-id $SNAPSHOT_ID --attribute createVolumePermission
