@@ -1,0 +1,7 @@
+ami_name      = "test-ami"
+db_user       = "testuser"
+db_pass       = "testpass"
+db_root_pass  = "rootpass"
+vpc_to_use    = "vpc-0b7016e41277eea71"
+subnet_to_use = "subnet-07fd69f3ed212982b"
+source_ami    = "ami-0866a3c8686eaeeba"
