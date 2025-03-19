@@ -1,13 +1,14 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("./index");
+const { v4: uuidv4 } = require("uuid");
 
 const ProfilePicUpload = sequelize.define(
   "ProfilePicUpload",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
+      defaultValue: uuidv4,
       primaryKey: true,
-      autoIncrement: true,
     },
     filename: {
       type: DataTypes.STRING,

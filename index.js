@@ -12,7 +12,9 @@ const PORT = 8080;
 
 app.use(express.json({ strict: true }));
 
-AWS.config.update({ region: process.env.AWS_REGION });
+AWS.config.update({
+  region: process.env.AWS_REGION,
+});
 const s3 = new AWS.S3();
 
 app.use((err, req, res, next) => {
@@ -139,7 +141,7 @@ app.delete("/v1/file/:id", async (req, res) => {
     // Delete from database
     await ProfilePicUpload.destroy({ where: { id } });
 
-    res.status(200).json({ message: "File deleted successfully" });
+    res.status(204).send();
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "File deletion failed" });
