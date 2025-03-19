@@ -111,7 +111,7 @@ app.get("/v1/file/:id", async (req, res) => {
       file_name: file.filename,
       id: file.id,
       url: file.path,
-      upload_date: file.createdAt.toISOString().split("T")[0], // YYYY-MM-DD format
+      upload_date: file.uploaded_at.toISOString().split("T")[0], // YYYY-MM-DD format
     });
   } catch (error) {
     console.error(error);

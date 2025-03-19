@@ -23,7 +23,7 @@ const ProfilePicUpload = sequelize.define(
     },
   },
   {
-    tableName: "profile_pics", // Renamed table to reflect profile pictures
+    tableName: "profile_pics",
     timestamps: false,
   }
 );
