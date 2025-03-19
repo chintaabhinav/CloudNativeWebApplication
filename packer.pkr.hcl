@@ -115,42 +115,13 @@ build {
       "export DEBIAN_FRONTEND=noninteractive",
       "sudo apt update -y",
       "sudo apt install -y nodejs npm",
-      "sudo apt install -y mysql-server",
-
-      # Start MySQL Service
-      "sudo systemctl start mysql",
-      "sudo systemctl enable mysql",
-
-      # ✅ Create a Single MySQL User With Full Privileges
-      "sudo mysql -e \"CREATE USER '${var.db_user}'@'localhost' IDENTIFIED BY '${var.db_pass}';\"",
-      "sudo mysql -e \"GRANT ALL PRIVILEGES ON *.* TO '${var.db_user}'@'localhost' WITH GRANT OPTION;\"",
-      "sudo mysql -e \"FLUSH PRIVILEGES;\"",
-
-      # ✅ Create Database and Assign Permissions
-      "sudo mysql -u${var.db_user} -p${var.db_pass} -e \"CREATE DATABASE testdb;\"",
-      "sudo mysql -u${var.db_user} -p${var.db_pass} -e \"GRANT ALL PRIVILEGES ON testdb.* TO '${var.db_user}'@'localhost';\"",
-      "sudo mysql -u${var.db_user} -p${var.db_pass} -e \"FLUSH PRIVILEGES;\"",
-
-      # Restart MySQL to Apply Changes
-      "sudo systemctl restart mysql",
-
 
       # Create the local user
       "sudo useradd -r -s /usr/sbin/nologin csye6225",
 
       # Create the application directory
       "sudo mkdir -p /var/www/webapp",
-      "sudo chown -R csye6225:csye6225 /var/www/webapp",
-
-      "echo 'DB_NAME=testdb' | sudo tee /var/www/webapp/.env",
-      "echo 'DB_USER=${var.db_user}' | sudo tee -a /var/www/webapp/.env",
-      "echo 'DB_PASS=${var.db_pass}' | sudo tee -a /var/www/webapp/.env",
-      "echo 'DB_HOST=127.0.0.1' | sudo tee -a /var/www/webapp/.env",
-      "echo 'DB_DIALECT=mysql' | sudo tee -a /var/www/webapp/.env",
-
-      "sudo chmod 644 /var/www/webapp/.env",               # ✅ Set correct permissions
-      "sudo chown csye6225:csye6225 /var/www/webapp/.env", # ✅ Ensure correct ownership
-      "echo '✅ .env file created successfully!'"
+      "sudo chown -R csye6225:csye6225 /var/www/webapp"
     ]
   }
 
@@ -165,6 +136,7 @@ build {
       "sudo apt install -y unzip",
       "sudo unzip /tmp/webapp.zip -d /var/www/webapp",
       "cd /var/www/webapp && sudo npm install"
+
     ]
   }
 
@@ -180,8 +152,9 @@ build {
       "sudo chmod 644 /etc/systemd/system/webapp.service",              # ✅ Correct permissions
       "sudo systemctl daemon-reload",
       "sudo systemctl enable webapp",
-      "sudo systemctl start webapp",
+      "echo '⚠️ Skipping webapp start in Packer. Terraform will start it later.'",
 
+      # ✅ Validate if service is running
       "if [ -f /etc/systemd/system/webapp.service ]; then echo '✅ webapp.service is successfully placed'; else echo '❌ webapp.service is missing'; exit 1; fi",
       "ls -l /etc/systemd/system/webapp.service" # ✅ Log file details for GitHub Actions output
     ]

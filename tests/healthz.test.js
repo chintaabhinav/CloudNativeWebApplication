@@ -1,5 +1,38 @@
 process.env.NODE_ENV = "test";
 
+jest.mock("aws-sdk", () => {
+  return {
+    S3: jest.fn(() => ({
+      upload: jest.fn().mockImplementation(() => ({
+        promise: () =>
+          Promise.resolve({ Location: "https://example.com/test.jpg" }),
+      })),
+      getObject: jest.fn().mockImplementation(() => ({
+        promise: () =>
+          Promise.resolve({ Body: Buffer.from("test file content") }),
+      })),
+    })),
+    config: {
+      update: jest.fn(),
+    },
+  };
+});
+
+jest.mock("multer-s3", () => {
+  return jest.fn().mockImplementation((options) => {
+    return {
+      _handleFile: (req, file, cb) => {
+        cb(null, {
+          location: "https://example.com/test.jpg",
+          key: "test-key",
+          bucket: options.bucket || "test-bucket",
+        });
+      },
+      _removeFile: jest.fn(),
+    };
+  });
+});
+
 const request = require("supertest");
 const app = require("../index"); // Import your Express app
 const sequelize = require("../models/index"); // Import Sequelize instance
