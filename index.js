@@ -95,8 +95,20 @@ app.post("/v1/file", upload.single("file"), async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "File upload failed" });
+    res.status(400).send();
   }
+});
+
+app.get("/v1/file", (req, res) => {
+  res.status(400).json({ error: "Bad Request" });
+});
+
+app.delete("/v1/file", (req, res) => {
+  res.status(400).json({ error: "Bad Request" });
+});
+
+app.all("/v1/file", (req, res) => {
+  res.status(405).json({ error: "Method Not Allowed" });
 });
 
 // 🟢 Get File Path API
@@ -127,7 +139,7 @@ app.delete("/v1/file/:id", async (req, res) => {
 
     const file = await ProfilePicUpload.findByPk(id);
     if (!file) {
-      return res.status(404).json({ error: "File not found" });
+      return res.status(404).send();
     }
 
     // Delete from S3
@@ -146,6 +158,10 @@ app.delete("/v1/file/:id", async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "File deletion failed" });
   }
+});
+
+app.all("/v1/file/:id", (req, res) => {
+  res.status(405).json({ error: "Method Not Allowed" });
 });
 
 // 🛑 Prevent running the server during tests
