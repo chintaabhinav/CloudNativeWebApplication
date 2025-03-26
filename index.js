@@ -19,15 +19,25 @@ const logger = winston.createLogger({
     winston.format.timestamp(),
     winston.format.json()
   ),
-  transports: [
-    new winston.transports.File({
-      filename: "/var/log/webapp/error.log",
-      level: "error",
-    }),
-    new winston.transports.File({
-      filename: "/var/log/webapp/application.log",
-    }),
-  ],
+  transports:
+    process.env.NODE_ENV === "test"
+      ? [
+          // Use console transport for tests
+          new winston.transports.Console({
+            level: "error",
+          }),
+          new winston.transports.Console(),
+        ]
+      : [
+          // Use file transports for production/development
+          new winston.transports.File({
+            filename: "/var/log/webapp/error.log",
+            level: "error",
+          }),
+          new winston.transports.File({
+            filename: "/var/log/webapp/application.log",
+          }),
+        ],
 });
 
 // Configure StatsD client for metrics
