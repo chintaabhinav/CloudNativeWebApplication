@@ -4,10 +4,10 @@ packer {
       version = ">= 1.2.8"
       source  = "github.com/hashicorp/amazon"
     }
-    googlecompute = {
-      source  = "github.com/hashicorp/googlecompute"
-      version = ">= 1.0.0"
-    }
+    # googlecompute = {
+    #   source  = "github.com/hashicorp/googlecompute"
+    #   version = ">= 1.0.0"
+    # }
   }
 }
 
@@ -94,34 +94,44 @@ source "amazon-ebs" "ubuntu" {
 }
 
 # GCP Machine Image Source Configuration
-source "googlecompute" "gcp_image" {
-  project_id            = var.gcp_project_id
-  source_image_family   = "ubuntu-2404-lts-amd64"
-  image_name            = "csye6225-${formatdate("YYYY-MM-DD-hh-mm-ss", timestamp())}"
-  zone                  = var.gcp_zone
-  disk_size             = var.disk_size
-  network               = var.network
-  communicator          = "ssh"
-  ssh_username          = var.gcp_ssh_username
-  service_account_email = "github-actions@gold-stone-451619-j7.iam.gserviceaccount.com"
-  tags                  = ["default-allow-ssh"]
-}
+# source "googlecompute" "gcp_image" {
+#   project_id            = var.gcp_project_id
+#   source_image_family   = "ubuntu-2404-lts-amd64"
+#   image_name            = "csye6225-${formatdate("YYYY-MM-DD-hh-mm-ss", timestamp())}"
+#   zone                  = var.gcp_zone
+#   disk_size             = var.disk_size
+#   network               = var.network
+#   communicator          = "ssh"
+#   ssh_username          = var.gcp_ssh_username
+#   service_account_email = "github-actions@gold-stone-451619-j7.iam.gserviceaccount.com"
+#   tags                  = ["default-allow-ssh"]
+# }
 
 build {
-  sources = ["source.amazon-ebs.ubuntu", "source.googlecompute.gcp_image"]
+  sources = ["source.amazon-ebs.ubuntu" /*, "source.googlecompute.gcp_image"*/]
 
   provisioner "shell" {
     inline = [
       "export DEBIAN_FRONTEND=noninteractive",
       "sudo apt update -y",
+      "sudo apt install -y wget",
+      "wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb",
+      "sudo dpkg -i amazon-cloudwatch-agent.deb",
+      "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo apt install -y nodejs npm",
+
 
       # Create the local user
       "sudo useradd -r -s /usr/sbin/nologin csye6225",
 
       # Create the application directory
       "sudo mkdir -p /var/www/webapp",
-      "sudo chown -R csye6225:csye6225 /var/www/webapp"
+      "sudo chown -R csye6225:csye6225 /var/www/webapp",
+
+      # Create log directories
+      "sudo mkdir -p /var/log/webapp",
+      "sudo chown -R csye6225:csye6225 /var/log/webapp",
+      "sudo chmod 755 /var/log/webapp"
     ]
   }
 

@@ -43,6 +43,7 @@ jobs:
           echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_DIALECT=mysql" >> .env
+          echo "NODE_ENV=test" >> .env
 
       - name: Ensure Sequelize config and migrations exist
         run: |
