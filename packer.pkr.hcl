@@ -108,7 +108,7 @@ source "amazon-ebs" "ubuntu" {
 # }
 
 build {
-  sources = ["source.amazon-ebs.ubuntu"/*, "source.googlecompute.gcp_image"*/]
+  sources = ["source.amazon-ebs.ubuntu" /*, "source.googlecompute.gcp_image"*/]
 
   provisioner "shell" {
     inline = [
