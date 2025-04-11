@@ -155,3 +155,124 @@ jobs:
           aws ec2 modify-snapshot-attribute --snapshot-id $SNAPSHOT_ID --attribute createVolumePermission --operation-type add --user-ids $TARGET_AWS_ACCOUNT
           aws ec2 describe-image-attribute --image-id $AMI_ID --attribute launchPermission
           aws ec2 describe-snapshot-attribute --snapshot-id $SNAPSHOT_ID --attribute createVolumePermission
+
+      - name: Configure AWS Credentials for DEMO Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEMO_REGION }}
+
+      - name: Verify AWS CLI Configuration
+        run: aws sts get-caller-identity
+
+      - name: Fetch AMI ID
+        id: fetch_ami
+        run: |
+          NEW_AMI_ID=$(aws ec2 describe-images --filters "Name=name,Values=${{ steps.create_image_name.outputs.IMAGE_NAME }}" --query "Images[0].ImageId" --output text)
+          if [ -z "$NEW_AMI_ID" ]; then
+            echo "Failed to fetch AMI ID."
+            exit 1
+          fi
+          echo "Fetched AMI ID: $NEW_AMI_ID"
+          echo "NEW_AMI_ID=$NEW_AMI_ID" >> $GITHUB_ENV
+
+      - name: Fetch Launch Template id
+        run: |
+          LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates --filters "Name=launch-template-name,Values=csye6225_asg" --query "LaunchTemplates[0].LaunchTemplateId" --output text)
+          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Failed to fetch Launch Template ID."
+            exit 1
+          fi
+          echo "Fetched Launch Template ID: $LAUNCH_TEMPLATE_ID"
+          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
+
+      - name: Create New Launch Template Version
+        run: |
+          set -e
+
+          LATEST_VERSION=$(aws ec2 describe-launch-templates \
+            --launch-template-ids $LAUNCH_TEMPLATE_ID \
+            --query "LaunchTemplates[0].LatestVersionNumber" --output text)
+
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "Failed to fetch the latest version of the Launch Template."
+            exit 1
+          fi
+
+          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+
+          echo "Latest Launch Template Version: $LATEST_VERSION"
+          echo "Fetched AMI ID in create new launch template: $NEW_AMI_ID"
+
+          aws ec2 create-launch-template-version \
+            --launch-template-id $LAUNCH_TEMPLATE_ID \
+            --source-version $LATEST_VERSION \
+            --launch-template-data "{\"ImageId\":\"$NEW_AMI_ID\"}"
+
+          UPDATED_VERSION=$(aws ec2 describe-launch-templates \
+          --launch-template-ids $LAUNCH_TEMPLATE_ID \
+          --query "LaunchTemplates[0].LatestVersionNumber" --output text)
+
+          echo "Updated Launch Template Version: $UPDATED_VERSION"
+          echo "UPDATED_VERSION=$UPDATED_VERSION" >> $GITHUB_ENV
+
+      - name: Fetch Auto Scaling Group Name
+        run: |
+          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(Tags[?Key=='Name'].Value, 'asg-app-instance')].AutoScalingGroupName" --output text)
+          if [ -z "$ASG_NAME" ]; then
+            echo "Failed to fetch Auto Scaling Group Name."
+            exit 1
+          fi
+
+          echo "Fetched Auto Scaling Group Name: $ASG_NAME"
+          echo "ASG_NAME=$ASG_NAME" >> $GITHUB_ENV
+
+      - name: Update ASG to Use Latest Launch Template Version
+        run: |
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name $ASG_NAME \
+            --launch-template "{\"LaunchTemplateId\":\"$LAUNCH_TEMPLATE_ID\",\"Version\":\"$UPDATED_VERSION\"}"
+
+      - name: Trigger Instance Refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name $ASG_NAME \
+            --preferences "{\"MinHealthyPercentage\":50,\"InstanceWarmup\":200}"
+
+      - name: Wait for Instance Refresh Completion
+        env:
+          MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
+        run: |
+          REFRESH_ID=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name $ASG_NAME \
+            --query "InstanceRefreshes[0].InstanceRefreshId" --output text)
+            
+          echo "Instance Refresh ID: $REFRESH_ID"
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+
+          echo "Waiting for Instance Refresh to complete..."
+          MAX_RETRIES=${MAX_RETRIES:-60}
+          RETRY_COUNT=0
+
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name $ASG_NAME \
+              --instance-refresh-ids $REFRESH_ID \
+              --query "InstanceRefreshes[0].Status" --output text)
+
+            echo "Current Status: $STATUS"
+            if [[ "$STATUS" == "Successful" ]]; then
+              echo "Instance Refresh completed successfully."
+              break
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" ]]; then
+              echo "Instance Refresh failed or was cancelled."
+              exit 1
+            elif [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
+              echo "Instance Refresh timed out after $((MAX_RETRIES * 30 / 60)) minutes."
+              exit 1
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              sleep 30
+            fi
+          done
