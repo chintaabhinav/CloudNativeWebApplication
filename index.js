@@ -145,49 +145,6 @@ app.get("/healthz", async (req, res) => {
   }
 });
 
-app.get("/cicd", async (req, res) => {
-  // ❌ Reject request if body, query params, or extra headers exist
-  if (req.body && Object.keys(req.body).length > 0) {
-    logger.warn("Health check rejected - request body not empty");
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.set("Pragma", "no-cache");
-    return res.status(400).end();
-  }
-
-  if (Object.keys(req.query).length > 0) {
-    logger.warn("Health check rejected - query parameters present");
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.set("Pragma", "no-cache");
-    return res.status(400).end();
-  }
-
-  try {
-    // Track database operation time
-    const dbStartTime = process.hrtime();
-
-    await HealthCheck.create({ datetime: new Date() });
-
-    // Calculate and record DB operation time
-    const dbHrTime = process.hrtime(dbStartTime);
-    const dbTimeMs = dbHrTime[0] * 1000 + dbHrTime[1] / 1000000;
-    statsd.timing("db.healthcheck.create.time", dbTimeMs);
-
-    logger.info("Health check successful");
-
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.set("Pragma", "no-cache");
-    res.status(200).end();
-  } catch (error) {
-    logger.error("Health check failed", {
-      error: error.message,
-      stack: error.stack,
-    });
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.set("Pragma", "no-cache");
-    res.status(503).end();
-  }
-});
-
 app.all("/healthz", (req, res) => {
   if (req.method !== "GET") {
     logger.warn(`Health check rejected - method ${req.method} not allowed`);
