@@ -35,6 +35,10 @@ Create variables.pkrvars.hcl file with the following fields:
 * source_ami_id   = ""
 * demo_account_id = ""
 
+**Terraform Repository**
+
+* Repository - https://github.com/chintaabhinav/Terraform-CloudNativeApplication *
+
 **SSL Certificate Import – Demo Environment**
 
 For the Demo environment, SSL certificates are not issued using AWS Certificate Manager. Instead, a third-party certificate provider (such as ZeroSSL) is used. The certificate must be manually imported into AWS ACM before deploying the infrastructure.
